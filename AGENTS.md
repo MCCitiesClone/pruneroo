@@ -15,7 +15,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 Before writing code against an upstream API, check the probe output. The
 Punishments service in particular differs substantially from its spec — see the
-table in README.md and the notes on the `punishments` table in
+table in `docs/upstream-apis.md` and the notes on the `punishments` table in
 `src/lib/db/schema.ts`.
 
 Two traps in that service specifically:

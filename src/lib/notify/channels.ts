@@ -162,7 +162,7 @@ interface PunishmentItem {
  * also does the login cross-check that keeps a lifted ban from being reported
  * as enforced, which matters more here than anywhere: this channel exists to
  * announce enforcement, and announcing a ban that was quietly lifted is exactly
- * the failure the README warns about.
+ * the failure `docs/alerts.md` warns about.
  */
 const PUNISHMENT_WHERE = sql`
   (p.type = 'BAN' OR p.is_deportation)

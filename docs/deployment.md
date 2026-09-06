@@ -100,8 +100,8 @@ What that moves, and why it matters:
 - **`notification_deliveries` and the `seeded.<channel>` watermarks.** This is
   the reason to transfer rather than start empty: a fresh database would treat
   every stored ban as unseen, and the first notifier run would seed thousands of
-  items instead of announcing the next real one. See "Enabling a webhook is not
-  an event" in the README.
+  items instead of announcing the next real one. See
+  [Discord alerts](alerts.md#enabling-a-webhook-is-not-an-event).
 - **`sync_jobs`, including the Treasury sweep backlog.** The backfill resumes
   where dev left it rather than starting over.
 - **Not `api_requests`.** It is a rolling audit log and only the last hour is
