@@ -34,10 +34,6 @@ Everything referenced below lives in `deploy/`.
 
 ## 0. Before you start
 
-- **The branch you want to deploy is pushed.** The egg deploys by cloning
-  `GIT_ADDRESS`, which defaults to the public repository
-  (`https://github.com/MCCitiesClone/pruneroo.git`) and needs no credentials.
-  `GIT_USERNAME`/`GIT_TOKEN` exist only for deploying from a private fork.
 - Root/SSH on the Wings node, with Docker.
 - A DNS A record pointing at the node.
 - Credentials to hand: Treasury JWT, Analytics login, forum `xf_user` cookie,
