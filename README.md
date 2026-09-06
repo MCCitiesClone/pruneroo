@@ -26,11 +26,11 @@ without the web server, use `npm run sync -- --worker`.
 
 | Variable | Needed for | Notes |
 |---|---|---|
-| `ANALYTICS_USERNAME` / `ANALYTICS_PASSWORD` | 30-day playtime | **Required.** `/v1/whoami` reports `authRequired: true`; unauthenticated requests get an HTML login page, not JSON. |
-| `TREASURY_TOKEN` | balances | Optional, but **required for `/prune`** — balances have no other source. Issue in-game with `/treasuryapi personal issue` or `/treasuryapi business issue`. A BUSINESS key gets 5× the rate quota, which matters here: the prune backfill is ~122,000 requests. |
+| `ANALYTICS_USERNAME` / `ANALYTICS_PASSWORD` | 30-day playtime | **Required.** `/v1/whoami` reports `authRequired: true`, and unauthenticated requests get an HTML login page rather than JSON. |
+| `TREASURY_TOKEN` | balances | Optional, but **required for `/prune`**, since balances have no other source. Issue one in-game with `/treasuryapi personal issue` or `/treasuryapi business issue`. A BUSINESS key gets 5× the rate quota, which matters here, because the prune backfill is ~122,000 requests. |
 
 Realty and Punishments are unauthenticated. Without the Analytics credentials
-everything else still syncs; inactivity simply reports `unmeasured` for players
+everything else still syncs, and inactivity reports `unmeasured` for players
 seen within the last 30 days.
 
 ## Being a responsible API client
@@ -40,11 +40,10 @@ application imposes its own and treats staying under them as a correctness
 requirement.
 
 1. **Nothing is re-crawled on a timer.** Every expensive crawl sits behind an
-   O(1) change probe, and anything time-derived — lease expiry, punishment
-   expiry, the sliding 30-day window — is computed locally from stored
-   timestamps rather than polled for.
-2. **Every outbound request goes through one shared throttle**, keyed by host,
-   and only one sync worker may run at a time (a Postgres advisory lock).
+   O(1) change probe. Lease expiry, punishment expiry and the sliding 30-day
+   window are computed locally from stored timestamps rather than polled for.
+2. **Every outbound request goes through one shared throttle**, keyed by host.
+   A Postgres advisory lock stops a second sync worker from ever starting.
 3. **Anything derivable locally is re-derived locally.** `npm run reparse`,
    `npm run reclassify` and the merge rebuild all cost zero upstream requests.
 
@@ -59,15 +58,15 @@ probes and the two N+1s that had to be reduced are in
 | [Ingest: probes, rate limits and the N+1s](docs/ingest.md) | How each source is crawled, the self-imposed budgets, and the two N+1 shapes that would otherwise cost 51 days of requests. |
 | [The at-risk list](docs/at-risk.md) | What flags a property, how the list is scoped, exclusions, zoning from tags, §17 plot limits and merged plots. |
 | [The inspector report kit](docs/inspector-kit.md) | Assembling a forum report from a region page, which reason is detected, and linking the filed thread back. |
-| [Prune: dormant players holding money](docs/prune.md) | The balance backfill that cannot be reduced, only paced — and how its progress is measured. |
+| [Prune: dormant players holding money](docs/prune.md) | The balance backfill that cannot be reduced, only paced, and how its progress is measured. |
 | [Eviction reports (forum)](docs/eviction-reports.md) | The fifth source: why the HTML listing and not RSS, how titles are matched to plots, and `/reports`. |
 | [Discord alerts](docs/alerts.md) | Three independent webhooks, why enabling one announces nothing, and why an alert cannot drift from its page. |
 | [Where the live APIs differ from their specs](docs/upstream-apis.md) | The Punishments traps, deportations parsed out of free text, and how "active" is actually decided. |
 | [Deployment](docs/deployment.md) | Running on a Pelican server: the egg, Postgres beside Wings, and moving an existing database across instead of re-crawling it. |
 
-Also in `docs/`: `sources/` (the published OpenAPI specs), `probes/` (what the
-live APIs actually returned, from `npm run probe`) and `policy/` (dated
-snapshots of the Inspector Guide and Evictions Policy).
+Also in `docs/`: `sources/` holds the published OpenAPI specs, `probes/` holds
+what the live APIs actually returned from `npm run probe`, and `policy/` holds
+dated snapshots of the Inspector Guide and Evictions Policy.
 
 ## Commands
 
@@ -98,20 +97,20 @@ src/app/             overview, at-risk (properties + plot limits), prune,
                      reports, exclusions, players, regions, sync health
 ```
 
-Zod validation is not optional on the way in: the Analytics endpoints are
+Zod validation is not optional on the way in. The Analytics endpoints are
 declared as untyped `{}` in their spec, so runtime validation is the only
-contract available. Money from Treasury is kept as a decimal string end to end
-and stored as Postgres `numeric` — it never passes through a JS number.
+contract available. Money from Treasury stays a decimal string end to end and
+lands in Postgres as `numeric`. It never passes through a JS number.
 
 ## Notes on the stack
 
-Next.js 16.3 with the App Router. `cacheComponents` is deliberately **off**:
-reads hit local Postgres in single-digit milliseconds and must be fresh, so
-Next's cache layer adds nothing, and enabling it would forbid reading
-`searchParams` inside cached scopes — a direct conflict with the filterable
+Next.js 16.3 with the App Router. `cacheComponents` is deliberately **off**.
+Reads hit local Postgres in single-digit milliseconds and must be fresh, so
+Next's cache layer adds nothing, and turning it on would forbid reading
+`searchParams` inside cached scopes. That conflicts directly with the filterable
 at-risk table. The cache in this system is Postgres.
 
-The sync worker is started from `instrumentation.ts`, the only startup hook Next
+The sync worker starts from `instrumentation.ts`, the only startup hook Next
 documents. It documents no cron convention, so hosting a scheduler there is a
-deliberate choice — valid because this deploys as a single long-running
-self-hosted process, and guarded by the advisory lock regardless.
+deliberate choice. It is valid because this deploys as a single long-running
+self-hosted process, and the advisory lock guards it regardless.

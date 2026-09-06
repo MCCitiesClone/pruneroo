@@ -11,20 +11,19 @@ Three of the four upstream APIs publish no rate limits at all. This application
 imposes its own, and treats staying under them as a correctness requirement.
 
 **Nothing is re-crawled on a timer.** Every expensive crawl sits behind an O(1)
-change probe, and only runs when the probe shows something actually moved.
+change probe, and only runs when the probe shows something moved.
 
-The one timer-driven crawl is `treasury.prune.sweep`, and it is not a *re*-crawl:
-it drains a finite backlog in which each player is asked about exactly once,
-ever, and then falls idle. See [Prune](prune.md) for why no
-probe can gate it.
+The one timer-driven crawl is `treasury.prune.sweep`, and it is not a *re*-crawl.
+It drains a finite backlog in which each player is asked about exactly once,
+ever, and then falls idle. See [Prune](prune.md) for why no probe can gate it.
 
-The probe's observed value is committed as the watermark **only after the crawl
+The probe's observed value becomes the watermark **only after the crawl
 succeeds**, never when it is enqueued. Advancing it early would let an
-interrupted crawl leave a silent, permanent gap — the next probe would compare
-upstream against a figure we never actually ingested and conclude nothing had
-changed. The watermark means "ingested up to here", not "saw this number".
+interrupted crawl leave a silent, permanent gap. The next probe would compare
+upstream against a figure we never ingested and conclude nothing had changed.
+The watermark means "ingested up to here", not "saw this number".
 
-Note also that `/stats/<type>` is a change *signal*, not a row target: it
+Note also that `/stats/<type>` is a change *signal*, not a row target. It
 disagrees with the paginated list by ~80 records for bans. Use it to detect
 movement, never to assert completeness.
 
@@ -34,9 +33,10 @@ movement, never to assert completeness.
 | `realty.stats` | 1 request | A 79-page region re-index |
 | `realty.activity` | a few | Per-region detail refreshes, only for regions the feed touched |
 
-A quiet server therefore costs a few dozen requests per hour. Anything derived
-from the passage of time — lease expiry, punishment expiry, the sliding 30-day
-window — is computed locally from stored timestamps and never polled for.
+A quiet server therefore costs a few dozen requests per hour. Lease expiry,
+punishment expiry and the sliding 30-day window all derive from the passage of
+time, so the app computes them locally from stored timestamps and never polls
+for them.
 
 **Self-imposed budgets** (`src/lib/http/budgets.ts`):
 
@@ -47,42 +47,44 @@ window — is computed locally from stored timestamps and never polled for.
 | Punishments | 60/min | 2 | undocumented |
 | Treasury | per-endpoint, ×0.8 | 2 | documented quotas, scope-aware |
 
-Treasury's quotas differ per endpoint and per token scope; the scope is read
-once from `/auth/me` at boot. The 0.8 factor leaves headroom for the token
-owner's own in-game usage. On top of that: `Retry-After` is honoured exactly,
-`X-RateLimit-Remaining` slows the bucket before a 429 happens, failures back off
-with jitter, and five consecutive failures open a per-source circuit breaker
-whose state survives a restart.
+Treasury's quotas differ per endpoint and per token scope, and the client reads
+the scope once from `/auth/me` at boot. The 0.8 factor leaves headroom for the
+token owner's own in-game usage. On top of that, the client honours
+`Retry-After` exactly, slows the bucket on `X-RateLimit-Remaining` before a 429
+happens, backs off with jitter on failure, and opens a per-source circuit
+breaker after five consecutive failures. That breaker's state survives a
+restart.
 
-Only one worker may run at a time, enforced by a Postgres advisory lock on a
-dedicated connection. Two workers would each hold their own in-memory buckets
-and between them double the upstream request rate.
+A Postgres advisory lock on a dedicated connection allows only one worker at a
+time. Two workers would each hold their own in-memory buckets and between them
+double the upstream request rate.
 
 ## Avoiding the N+1s
 
-Two upstream shapes would otherwise be very expensive:
+Two upstream shapes would otherwise be very expensive.
 
 **Realty ownership.** `/v1/regions` pages the whole region set but returns
-identity only — ownership comes from `/v1/region`, one call per region (verified
-against the live API, not just the spec). So the first run backfills all 7,837
+identity only. Ownership comes from `/v1/region`, one call per region, verified
+against the live API rather than the spec. So the first run backfills all 7,837
 regions once, and after that `/v1/activity?since=` drives refreshes for only the
 regions that changed.
 
 **30-day playtime.** `/v1/playersTable` returns the whole roster in one request
 but only lifetime playtime. The 30-day figure needs `/v1/player?player=<uuid>`,
-one call per player — and the roster is **92,970 players**, which at 30 req/min
+one call per player, and the roster is **92,970 players**, which at 30 req/min
 would take 51 days. Three exact reductions shrink that set to something
-tractable; none is an approximation:
+tractable. None is an approximation.
 
-1. Only **property stakeholders** are queried at all; they are the only players
-   the insight concerns — 369 titleholders plus landlords and tenants, against a
-   roster of ~93,000. This alone removes over 99% of the work.
+1. Only **property stakeholders** are queried at all, because they are the only
+   players the insight concerns. That is 369 titleholders plus landlords and
+   tenants, against a roster of ~93,000, so this alone removes over 99% of the
+   work.
 2. **Last seen over 30 days ago ⇒ the 30-day figure is necessarily 0.** The bulk
    roster already told us `lastSeen`, so these players cost zero requests. They
    are reported as `inferred_zero`.
 3. **Lifetime playtime unchanged since the last fetch ⇒ no new play occurred**,
    so the 30-day figure can only have decreased. No refetch needed.
 
-Provenance is carried into the UI. A player whose playtime has never been
-measured shows as `unmeasured` and is excluded from inactivity results, so the
-headline count is never inflated by missing data.
+Provenance carries into the UI. A player whose playtime has never been measured
+shows as `unmeasured` and drops out of inactivity results, so missing data can
+never inflate the headline count.
