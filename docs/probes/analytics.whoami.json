@@ -1,0 +1,10 @@
+{
+  "name": "analytics.whoami",
+  "url": "https://analytics.democracycraft.net/v1/whoami",
+  "status": 200,
+  "ok": true,
+  "body": {
+    "authRequired": true,
+    "loggedIn": false
+  }
+}

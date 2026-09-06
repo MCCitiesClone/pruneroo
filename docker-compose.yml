@@ -1,0 +1,25 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: pruneroo-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pruneroo
+      POSTGRES_PASSWORD: pruneroo
+      POSTGRES_DB: pruneroo
+    # Docker defaults /dev/shm to 64MB, which Postgres exhausts as soon as a
+    # parallel query needs a shared hash table — the insight views scan ~7.9k
+    # regions and hit "could not resize shared memory segment" (SQLSTATE 53100).
+    shm_size: 512mb
+    ports:
+      - "5434:5432"
+    volumes:
+      - pruneroo-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pruneroo -d pruneroo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pruneroo-pgdata:

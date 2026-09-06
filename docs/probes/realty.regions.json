@@ -1,0 +1,41 @@
+{
+  "name": "realty.regions",
+  "url": "https://realty.democracycraft.net/v1/regions?page=1&pageSize=3",
+  "status": 200,
+  "ok": true,
+  "body": {
+    "page": 1,
+    "pageSize": 3,
+    "totalCount": 7837,
+    "totalPages": 2613,
+    "regions": {
+      "__arrayLength": 3,
+      "__sample": [
+        {
+          "worldGuardRegionId": "1",
+          "world": {
+            "id": "b04fccfd-b696-4c85-8497-aecbb0277883",
+            "name": "Reveille"
+          },
+          "state": "LEASED"
+        },
+        {
+          "worldGuardRegionId": "1a",
+          "world": {
+            "id": "b04fccfd-b696-4c85-8497-aecbb0277883",
+            "name": "Reveille"
+          },
+          "state": "LEASED"
+        },
+        {
+          "worldGuardRegionId": "1b",
+          "world": {
+            "id": "b04fccfd-b696-4c85-8497-aecbb0277883",
+            "name": "Reveille"
+          },
+          "state": "LEASED"
+        }
+      ]
+    }
+  }
+}

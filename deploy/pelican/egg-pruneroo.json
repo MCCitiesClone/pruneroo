@@ -1,0 +1,383 @@
+{
+    "_comment": "Pruneroo \u2014 see docs/deployment.md in the repository. PTDL_v2 is the format Pelican imports; it is what the whole pelican-eggs library ships.",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-09-06T00:00:00+00:00",
+    "name": "Pruneroo",
+    "author": "evan.dayton.sizemore@gmail.com",
+    "description": "Pruneroo: a unified insight dashboard over DemocracyCraft's four APIs.\n\nClones the repo, runs npm ci + next build on install, applies migrations on start, then serves Next on the allocated port. The background sync worker runs in-process (src/instrumentation.ts), so this is one server, not two.\n\nNeeds an external Postgres 17 \u2014 the panel's own database feature is MySQL/MariaDB only. Give it at least 3 GB of memory (next build) and 5 GB of disk (node_modules + .next).",
+    "features": null,
+    "docker_images": {
+        "Nodejs 24": "ghcr.io/pelican-eggs/yolks:nodejs_24",
+        "Nodejs 22": "ghcr.io/pelican-eggs/yolks:nodejs_22"
+    },
+    "file_denylist": [],
+    "startup": "bash ./deploy/pelican/start.sh",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": [\"Ready in\"]}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Pruneroo install: clone the repo, then hand off to deploy/pelican/install.sh\n# in the repo, which does npm ci + next build.\n#\n# Server Files: /mnt/server\nset -euo pipefail\n\napt-get update -qq\napt-get install -y -qq git ca-certificates > /dev/null\n\nmkdir -p /mnt/server\ncd /mnt/server\n\nREPO=\"${GIT_ADDRESS}\"\n[[ \"${REPO}\" == *.git ]] || REPO=\"${REPO}.git\"\n\n# Private repo: a fine-grained PAT or deploy token with read access. It is baked\n# into the remote URL so the startup script's `git fetch` keeps working.\nif [ -n \"${GIT_TOKEN:-}\" ]; then\n    REPO=\"https://${GIT_USERNAME:-x-access-token}:${GIT_TOKEN}@$(echo \"${REPO}\" | cut -d/ -f3-)\"\nfi\n\nif [ -d .git ]; then\n    echo \"[install] existing checkout, resetting to origin/${GIT_BRANCH}\"\n    git remote set-url origin \"${REPO}\"\n    git fetch --prune origin \"${GIT_BRANCH}\"\n    git reset --hard \"origin/${GIT_BRANCH}\"\nelif [ -z \"$(ls -A /mnt/server)\" ]; then\n    git clone --branch \"${GIT_BRANCH}\" \"${REPO}\" /mnt/server\nelse\n    echo \"[install] /mnt/server is not empty, cloning alongside\"\n    git clone --branch \"${GIT_BRANCH}\" \"${REPO}\" /tmp/pruneroo\n    cp -a /tmp/pruneroo/. /mnt/server/\n    rm -rf /tmp/pruneroo\nfi\n\nbash /mnt/server/deploy/pelican/install.sh\n",
+            "container": "node:24-trixie-slim",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Git repository",
+            "description": "HTTPS URL of the Pruneroo repository to deploy, e.g. https://github.com/you/pruneroo",
+            "env_variable": "GIT_ADDRESS",
+            "default_value": "https://github.com/CHANGE-ME/pruneroo.git",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Git branch",
+            "description": "Branch to deploy.",
+            "env_variable": "GIT_BRANCH",
+            "default_value": "main",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Git username",
+            "description": "Only for a private repository. Leave blank for a public one.",
+            "env_variable": "GIT_USERNAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Git token",
+            "description": "Personal access / deploy token for a private repository. Stored in the remote URL inside .git/config on the server.",
+            "env_variable": "GIT_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Auto update on start",
+            "description": "1 = git fetch + reset --hard to the branch on every start, rebuilding if the revision changed. 0 = run whatever is on disk.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Run migrations on start",
+            "description": "1 = apply Drizzle migrations and re-apply views.sql before starting. Leave on: both are idempotent.",
+            "env_variable": "RUN_MIGRATIONS",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Database URL",
+            "description": "Postgres connection string. From inside the container the Wings bridge gateway is the host, e.g. postgres://pruneroo:PASSWORD@172.18.0.1:5432/pruneroo",
+            "env_variable": "DATABASE_URL",
+            "default_value": "postgres://pruneroo:CHANGE-ME@172.18.0.1:5432/pruneroo",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Realty base URL",
+            "description": "Realty API base.",
+            "env_variable": "REALTY_BASE_URL",
+            "default_value": "https://realty.democracycraft.net/v1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Analytics base URL",
+            "description": "Analytics (Plan) API base.",
+            "env_variable": "ANALYTICS_BASE_URL",
+            "default_value": "https://analytics.democracycraft.net/v1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Treasury base URL",
+            "description": "Treasury API base.",
+            "env_variable": "TREASURY_BASE_URL",
+            "default_value": "https://api.democracycraft.net/economy/api/v1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Punishments base URL",
+            "description": "Punishments API base.",
+            "env_variable": "PUNISHMENTS_BASE_URL",
+            "default_value": "https://punishments.democracycraft.net",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Treasury token",
+            "description": "JWT from /treasuryapi personal issue or /treasuryapi business issue. Required for /prune \u2014 balances have no other source. A BUSINESS key gets 5x the rate quota.",
+            "env_variable": "TREASURY_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Analytics username",
+            "description": "Plan webserver login. Required for 30-day playtime; without it inactivity reports `unmeasured`.",
+            "env_variable": "ANALYTICS_USERNAME",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Analytics password",
+            "description": "Plan webserver password.",
+            "env_variable": "ANALYTICS_PASSWORD",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Forum eviction listing URL",
+            "description": "HTML thread listing for eviction reports (not the RSS feed).",
+            "env_variable": "FORUM_EVICTION_LISTING_URL",
+            "default_value": "https://www.democracycraft.net/forums/eviction-reports.62/",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Forum archive listing URL",
+            "description": "Archived (previous) eviction reports.",
+            "env_variable": "FORUM_ARCHIVE_LISTING_URL",
+            "default_value": "https://www.democracycraft.net/forums/archive.158/",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Forum region world",
+            "description": "World that plot names in eviction reports refer to. Matching is scoped to it.",
+            "env_variable": "FORUM_REGION_WORLD",
+            "default_value": "Reveille",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Forum cookie",
+            "description": "xf_user cookie from a logged-in browser session, e.g. xf_user=123,abcdef... Guests get 403 on the eviction forum.",
+            "env_variable": "FORUM_COOKIE",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Eviction resolved prefixes",
+            "description": "Comma-separated thread prefixes that mean a report is finished. Anything else counts as active. /sync lists the prefixes actually observed.",
+            "env_variable": "EVICTION_RESOLVED_PREFIXES",
+            "default_value": "solved",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "App base URL",
+            "description": "Public URL of this dashboard, used to link Discord alerts back to the page that explains them.",
+            "env_variable": "APP_BASE_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Discord webhook: punishments",
+            "description": "Webhook for new bans/mutes. Blank disables just this channel. The first run of a newly set webhook seeds silently \u2014 it never replays history.",
+            "env_variable": "DISCORD_WEBHOOK_PUNISHMENTS",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Discord webhook: prune",
+            "description": "Webhook for dormant players holding a balance.",
+            "env_variable": "DISCORD_WEBHOOK_PRUNE",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Discord webhook: at-risk",
+            "description": "Webhook for at-risk plots.",
+            "env_variable": "DISCORD_WEBHOOK_AT_RISK",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Discord prune alert floor",
+            "description": "Balance a dormant player must exceed to be announced. Far above PRUNE_MIN_BALANCE on purpose.",
+            "env_variable": "DISCORD_PRUNE_MIN_BALANCE",
+            "default_value": "10000",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|numeric",
+            "field_type": "text"
+        },
+        {
+            "name": "Discord items per message",
+            "description": "Embeds per message. 10 is Discord's hard cap.",
+            "env_variable": "DISCORD_ITEMS_PER_MESSAGE",
+            "default_value": "10",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|numeric|between:1,10",
+            "field_type": "text"
+        },
+        {
+            "name": "Discord items per run",
+            "description": "Items announced per run, per channel. Bounds a burst; the remainder goes out next run.",
+            "env_variable": "DISCORD_MAX_ITEMS_PER_RUN",
+            "default_value": "50",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|numeric|between:1,1000",
+            "field_type": "text"
+        },
+        {
+            "name": "Sync worker enabled",
+            "description": "true or false. false runs the web UI only \u2014 no background crawling. Exactly one process may run the worker; a second is refused by an advisory lock.",
+            "env_variable": "SYNC_WORKER_ENABLED",
+            "default_value": "true",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|in:true,false",
+            "field_type": "text"
+        },
+        {
+            "name": "Inactivity threshold (hours)",
+            "description": "Default 30-day playtime below which a player counts as inactive. Overridable per request in the UI. The 30-day window itself is fixed upstream.",
+            "env_variable": "INACTIVITY_THRESHOLD_HOURS",
+            "default_value": "6",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|numeric",
+            "field_type": "text"
+        },
+        {
+            "name": "Prune inactivity (days)",
+            "description": "How long since last login makes a player dormant.",
+            "env_variable": "PRUNE_INACTIVITY_DAYS",
+            "default_value": "90",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|numeric",
+            "field_type": "text"
+        },
+        {
+            "name": "Prune minimum balance",
+            "description": "Exclusive floor for the /prune list: the rule is balance > this, so 0 means any credit.",
+            "env_variable": "PRUNE_MIN_BALANCE",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|numeric",
+            "field_type": "text"
+        },
+        {
+            "name": "Prune sweep batch",
+            "description": "Players priced per treasury.prune.sweep pass (one pass a minute). The pacing dial for the balance backfill \u2014 raising it means a heavier sustained load on someone else's game server.",
+            "env_variable": "PRUNE_SWEEP_BATCH",
+            "default_value": "150",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|numeric|between:1,2000",
+            "field_type": "text"
+        },
+        {
+            "name": "Prune sweep concurrency",
+            "description": "Players worked on at once. Does NOT raise the request rate \u2014 the shared throttle caps treasury at 2 requests in flight regardless. Above ~4 there is nothing to gain.",
+            "env_variable": "PRUNE_SWEEP_CONCURRENCY",
+            "default_value": "4",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|numeric|between:1,16",
+            "field_type": "text"
+        },
+        {
+            "name": "Prune balance batch",
+            "description": "Stored balances re-read per pass.",
+            "env_variable": "PRUNE_BALANCE_BATCH",
+            "default_value": "300",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|numeric|between:1,2000",
+            "field_type": "text"
+        },
+        {
+            "name": "Prune balance max age (hours)",
+            "description": "How stale a stored balance may get before it is re-read.",
+            "env_variable": "PRUNE_BALANCE_MAX_AGE_HOURS",
+            "default_value": "24",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|numeric",
+            "field_type": "text"
+        },
+        {
+            "name": "Prune page size",
+            "description": "Rows per page on /prune. Display only \u2014 the page makes no upstream requests.",
+            "env_variable": "PRUNE_PAGE_SIZE",
+            "default_value": "25",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|numeric|between:1,100",
+            "field_type": "text"
+        }
+    ]
+}

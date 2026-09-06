@@ -1,0 +1,1 @@
+ALTER TABLE "eviction_reports" ADD COLUMN "source" text DEFAULT 'forum' NOT NULL;

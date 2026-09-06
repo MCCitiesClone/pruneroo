@@ -1,0 +1,2 @@
+ALTER TABLE "punishments" ADD COLUMN "deportation_completed_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "punishments" ADD COLUMN "deportation_expires_at" timestamp with time zone;

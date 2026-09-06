@@ -1,0 +1,10 @@
+{
+  "name": "realty.health",
+  "url": "https://realty.democracycraft.net/v1/health",
+  "status": 200,
+  "ok": true,
+  "body": {
+    "status": "ok",
+    "module": "ok"
+  }
+}

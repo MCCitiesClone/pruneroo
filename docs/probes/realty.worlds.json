@@ -1,0 +1,23 @@
+{
+  "name": "realty.worlds",
+  "url": "https://realty.democracycraft.net/v1/worlds",
+  "status": 200,
+  "ok": true,
+  "body": {
+    "__arrayLength": 9,
+    "__sample": [
+      {
+        "id": "a0eb2e05-6f2a-4b39-a903-519f670becb2",
+        "name": "EventsWorld"
+      },
+      {
+        "id": "a07b7aa8-8f67-4ce2-b878-71e5dccedf93",
+        "name": "Everwild"
+      },
+      {
+        "id": "3fd9bb26-3896-4657-95c0-db2ede19534e",
+        "name": "Hamilton"
+      }
+    ]
+  }
+}

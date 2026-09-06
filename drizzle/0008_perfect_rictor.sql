@@ -1,0 +1,2 @@
+ALTER TABLE "eviction_report_regions" ADD COLUMN "source" text DEFAULT 'parsed' NOT NULL;--> statement-breakpoint
+ALTER TABLE "eviction_report_regions" ADD COLUMN "assigned_at" timestamp with time zone DEFAULT now() NOT NULL;

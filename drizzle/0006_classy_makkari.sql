@@ -1,0 +1,2 @@
+ALTER TABLE "eviction_reports" ADD COLUMN "eviction_date" timestamp with time zone;--> statement-breakpoint
+CREATE INDEX "eviction_reports_eviction_date_idx" ON "eviction_reports" USING btree ("eviction_date");

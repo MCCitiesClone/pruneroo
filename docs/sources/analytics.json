@@ -1,0 +1,1517 @@
+{
+  "openapi" : "3.0.1",
+  "info" : {
+    "title" : "Swagger Docs",
+    "description" : "If authentication is enabled (see response of /v1/whoami) logging in is required for endpoints (/auth/login). Pass 'Cookie' header in the requests after login.",
+    "contact" : {
+      "name" : "Github Discussions",
+      "url" : "https://github.com/plan-player-analytics/Plan/discussions/categories/apis-and-development"
+    },
+    "license" : {
+      "name" : "GNU Lesser General Public License v3.0 (LGPLv3.0)",
+      "url" : "https://github.com/plan-player-analytics/Plan/blob/master/LICENSE"
+    }
+  },
+  "paths" : {
+    "/auth/login" : {
+      "post" : {
+        "description" : "Log in as user. Pass user=username&password=password in response body.",
+        "operationId" : "resolve",
+        "requestBody" : {
+          "content" : {
+            "*/*" : {
+              "example" : "user=username&password=password"
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Login success, read Set-Cookie header for cookie"
+          },
+          "400" : {
+            "description" : "Bad input user details"
+          },
+          "403" : {
+            "description" : "Too many attempts, wait"
+          }
+        }
+      }
+    },
+    "/auth/logout" : {
+      "get" : {
+        "description" : "Logout the user by removing cookie",
+        "operationId" : "resolve_1",
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "302 (success)" : {
+            "description" : "Logout successful, redirects to /login"
+          },
+          "302 (failure)" : {
+            "description" : "Cookie had already expired, redirects to /login"
+          }
+        }
+      }
+    },
+    "/auth/register" : {
+      "get" : {
+        "description" : "Start new registration and check if registration is complete. POST user=username&password=password to start new registration.",
+        "operationId" : "resolve_2",
+        "parameters" : [ {
+          "name" : "code",
+          "in" : "query",
+          "description" : "Registration code for finishing registration, Check if registration is complete - success: true if yes.",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "description" : "Register a new user",
+          "content" : {
+            "*/*" : {
+              "example" : "user=username&password=password"
+            }
+          }
+        },
+        "responses" : {
+          "200 (new)" : {
+            "description" : "New registration started (when given request body details)",
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "success" : true,
+                  "code" : "474AF76D5362"
+                }
+              }
+            }
+          },
+          "200 (unfinished)" : {
+            "description" : "Registration not yet completed (when given code as parameter)",
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "success" : false
+                }
+              }
+            }
+          },
+          "200 (completed)" : {
+            "description" : "Registration completed (when given code as parameter)",
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "success" : true
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "Given username has already been registered",
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "status" : 400,
+                  "error" : "User already exists!"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/gameAllowlistBounces" : {
+      "get" : {
+        "description" : "Get allowlist bounce data for server",
+        "operationId" : "resolve_3",
+        "parameters" : [ {
+          "name" : "server",
+          "in" : "query",
+          "description" : "Server identifier to get data for (optional)",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : { }
+            }
+          },
+          "400" : {
+            "description" : "If 'server' parameter is not an existing server"
+          }
+        }
+      }
+    },
+    "/v1/errors" : {
+      "get" : {
+        "description" : "Get list of Plan error logs",
+        "operationId" : "resolve_4",
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "List of error files and their contents",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "$ref" : "#/components/schemas/ErrorFile"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/graph" : {
+      "get" : {
+        "description" : "Get graph data",
+        "operationId" : "resolve_5",
+        "parameters" : [ {
+          "name" : "type",
+          "in" : "query",
+          "description" : "Type of the graph, see https://github.com/plan-player-analytics/Plan/blob/master/Plan/common/src/main/java/com/djrapitops/plan/delivery/webserver/resolver/json/GraphsJSONResolver.java",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "server",
+          "in" : "query",
+          "description" : "Server identifier to get data for",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "timestamp",
+          "in" : "query",
+          "description" : "Epoch millisecond for the request, newer value is wanted",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Graph data json",
+            "content" : {
+              "*/*" : { }
+            }
+          },
+          "400" : {
+            "description" : "'type' parameter not given",
+            "content" : {
+              "*/*" : {
+                "example" : {
+                  "status" : 400,
+                  "error" : "'type' parameter was not defined."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/network/performanceOverview" : {
+      "get" : {
+        "description" : "Get performance overview information for multiple servers",
+        "operationId" : "resolve_6",
+        "parameters" : [ {
+          "name" : "servers",
+          "in" : "query",
+          "description" : "JSON list of server uuids (URI encoded)",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "example" : "%5B%22a779e107-0474-4d9f-8f4d-f1efb068d32e%22%5D (is [\"a779e107-0474-4d9f-8f4d-f1efb068d32e\"])"
+        } ],
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "numbers" : { }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/player" : {
+      "get" : {
+        "description" : "Get player data for visualizing a single player",
+        "operationId" : "resolve_7",
+        "parameters" : [ {
+          "name" : "player",
+          "in" : "query",
+          "description" : "Identifier for the player",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : { }
+            }
+          },
+          "400" : {
+            "description" : "If 'player' parameter is not given"
+          }
+        }
+      }
+    },
+    "/v1/joinAddresses" : {
+      "get" : {
+        "description" : "Get join address information of players for server or network",
+        "operationId" : "resolve_8",
+        "parameters" : [ {
+          "name" : "server",
+          "in" : "query",
+          "description" : "Server identifier to get data for (optional)",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PlayerJoinAddresses"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "If 'server' parameter is not an existing server"
+          }
+        }
+      }
+    },
+    "/v1/kills" : {
+      "get" : {
+        "description" : "Get player kill data for a server",
+        "operationId" : "resolve_9",
+        "parameters" : [ {
+          "name" : "server",
+          "in" : "query",
+          "description" : "Identifier for the server",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "player_kills" : [ ]
+                }
+              }
+            }
+          },
+          "400 (no parameter)" : {
+            "description" : "If 'server' parameter is not given"
+          },
+          "400 (no match)" : {
+            "description" : "If 'server' parameter does not match an existing server"
+          }
+        }
+      }
+    },
+    "/v1/players" : {
+      "get" : {
+        "description" : "Get player table data for /players page or a server. Deprecated, use /v1/playersTable instead.",
+        "operationId" : "resolve_10",
+        "parameters" : [ {
+          "name" : "server",
+          "in" : "query",
+          "description" : "Server identifier to get data for (optional)",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : { }
+            }
+          }
+        },
+        "deprecated" : true
+      }
+    },
+    "/v1/playersOnline" : {
+      "get" : {
+        "description" : "Get theme json for a name",
+        "operationId" : "resolve_11",
+        "parameters" : [ {
+          "name" : "date",
+          "in" : "query",
+          "description" : "Epoch millisecond",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "server",
+          "in" : "query",
+          "description" : "Server UUID",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ThemeDto"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "If 'date' parameter is not specified or invalid"
+          }
+        }
+      }
+    },
+    "/v1/playersTable" : {
+      "get" : {
+        "description" : "Get player table data for /players page or a server",
+        "operationId" : "resolve_12",
+        "parameters" : [ {
+          "name" : "server",
+          "in" : "query",
+          "description" : "Server identifier to get data for (optional)",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "*/*" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PlayerListDto"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : { }
+            }
+          }
+        }
+      }
+    },
+    "/v1/retention" : {
+      "get" : {
+        "description" : "Get retention data for server or the network",
+        "operationId" : "resolve_13",
+        "parameters" : [ {
+          "name" : "server",
+          "in" : "query",
+          "description" : "Server identifier to get data for (optional)",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : { }
+            }
+          },
+          "400" : {
+            "description" : "If 'server' parameter is not an existing server"
+          }
+        }
+      }
+    },
+    "/v1/sessions" : {
+      "get" : {
+        "description" : "Get sessions for a server or whole network",
+        "operationId" : "resolve_14",
+        "parameters" : [ {
+          "name" : "server",
+          "in" : "query",
+          "description" : "Server identifier to get data for (optional)",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : { }
+            }
+          },
+          "400" : {
+            "description" : "If 'server' parameter is not an existing server"
+          }
+        }
+      }
+    },
+    "/v1/locale/{langCode}" : {
+      "get" : {
+        "operationId" : "resolve_15",
+        "parameters" : [ {
+          "name" : "langCode",
+          "in" : "path",
+          "description" : "Language code. NOT REQUIRED. /v1/locale lists available language codes.",
+          "required" : true,
+          "allowEmptyValue" : true,
+          "schema" : {
+            "type" : "string"
+          },
+          "example" : "/v1/locale/EN"
+        } ],
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "200 (/locale)" : {
+            "description" : "List of available locales",
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "defaultLanguage" : "EN",
+                  "languages" : {
+                    "EN" : "English",
+                    "FI" : "Finnish"
+                  },
+                  "languageVersions" : {
+                    "EN" : 1657189514266,
+                    "FI" : 1657189514266
+                  }
+                }
+              }
+            }
+          },
+          "200 (/locale/{langCode})" : {
+            "description" : "Contents of the locale.json file matching given langCode"
+          },
+          "404" : {
+            "description" : "Language by langCode was not found"
+          }
+        }
+      }
+    },
+    "/v1/metadata" : {
+      "get" : {
+        "description" : "Get metadata required for displaying Plan React frontend",
+        "operationId" : "resolve_16",
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "default" : {
+            "description" : "default response",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Response"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/networkMetadata" : {
+      "get" : {
+        "description" : "Get metadata about the network such as list of servers.",
+        "operationId" : "resolve_17",
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "default" : {
+            "description" : "default response",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Response"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/preferences" : {
+      "get" : {
+        "description" : "Get user preferences (if they exist) and default preferences",
+        "operationId" : "resolve_18",
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : { }
+            }
+          }
+        }
+      }
+    },
+    "/v1/storePreferences" : {
+      "post" : {
+        "description" : "Update user preferences",
+        "operationId" : "resolve_19",
+        "requestBody" : {
+          "content" : {
+            "*/*" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/Preferences"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "Storage was successful"
+          },
+          "400" : {
+            "description" : "Request body does not match json format of preferences"
+          },
+          "403" : {
+            "description" : "Not logged in (This endpoint only accepts requests if logged in)"
+          },
+          "405" : {
+            "description" : "Not POST request"
+          }
+        }
+      }
+    },
+    "/v1/version" : {
+      "get" : {
+        "description" : "Get Plan version and update information",
+        "operationId" : "resolve_20",
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : { }
+            }
+          }
+        }
+      }
+    },
+    "/v1/whoami" : {
+      "get" : {
+        "description" : "Get information about the currently logged in user",
+        "operationId" : "resolve_21",
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : { }
+            }
+          }
+        }
+      }
+    },
+    "/v1/pluginHistory" : {
+      "get" : {
+        "description" : "Get plugin history for a server since installation of Plan.",
+        "operationId" : "resolve_22",
+        "parameters" : [ {
+          "name" : "server",
+          "in" : "query",
+          "description" : "Server identifier to get data for (optional)",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PluginHistoryDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/datapoint" : {
+      "get" : {
+        "description" : "Get datapoint value for player, server or network",
+        "operationId" : "resolve_23",
+        "parameters" : [ {
+          "name" : "type",
+          "in" : "query",
+          "description" : "Type of datapoint",
+          "schema" : {
+            "type" : "string"
+          },
+          "example" : {
+            "value" : "PLAYTIME"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : { }
+            }
+          },
+          "400" : {
+            "description" : "If 'type' parameter is not set or supported"
+          }
+        }
+      }
+    },
+    "/v1/filters" : {
+      "get" : {
+        "description" : "Get list of available filters, view and graph points for visualizing the view",
+        "operationId" : "resolve_24",
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FilterResponseDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/query" : {
+      "get" : {
+        "description" : "Perform a query or get cached results. Use q to do new query, timestamp to see cached query.",
+        "operationId" : "resolve_25",
+        "parameters" : [ {
+          "name" : "timestamp",
+          "in" : "query",
+          "description" : "Epoch millisecond for cached query",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "q",
+          "in" : "query",
+          "description" : "URI encoded json, alternative is to POST in request body",
+          "schema" : {
+            "$ref" : "#/components/schemas/InputQueryDto"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "*/*" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/InputQueryDto"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : { }
+            }
+          },
+          "400 (invalid view)" : {
+            "description" : "If 'view' date formats does not match afterDate dd/mm/yyyy, afterTime hh:mm, beforeDate dd/mm/yyyy, beforeTime hh:mm"
+          },
+          "400 (no query)" : {
+            "description" : "If request body is empty and 'q' request parameter is not given"
+          },
+          "400 (invalid query)" : {
+            "description" : "If request body is empty and 'q' json request parameter doesn't contain 'view' property"
+          }
+        }
+      }
+    },
+    "/v1/deleteTheme" : {
+      "post" : {
+        "description" : "Delete theme json with a name",
+        "operationId" : "resolve_26",
+        "parameters" : [ {
+          "name" : "theme",
+          "in" : "query",
+          "description" : "Name of the theme, alphanumeric with dashes",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : { }
+            }
+          },
+          "400" : {
+            "description" : "If 'theme' parameter is not specified or invalid"
+          }
+        }
+      }
+    },
+    "/v1/saveTheme" : {
+      "post" : {
+        "description" : "Save theme json with a name",
+        "operationId" : "resolve_27",
+        "parameters" : [ {
+          "name" : "theme",
+          "in" : "query",
+          "description" : "Name of the theme, alphanumeric with dashes",
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "*/*" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ThemeDto"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : { }
+            }
+          },
+          "400" : {
+            "description" : "If request body is invalid"
+          }
+        }
+      }
+    },
+    "/v1/theme" : {
+      "get" : {
+        "description" : "Get theme json for a name",
+        "operationId" : "resolve_28",
+        "parameters" : [ {
+          "name" : "theme",
+          "in" : "query",
+          "description" : "Name of the theme, alphanumeric with dashes",
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "onlyJar",
+          "in" : "query",
+          "description" : "Only accept themes from the jar",
+          "schema" : {
+            "type" : "string"
+          },
+          "example" : {
+            "value" : true
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ThemeDto"
+                }
+              }
+            }
+          },
+          "400" : {
+            "description" : "If 'theme' parameter is not specified or invalid"
+          }
+        }
+      }
+    },
+    "/v1/deleteGroup" : {
+      "delete" : {
+        "description" : "Delete a group",
+        "operationId" : "resolve_29",
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "example" : {
+                  "success" : true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webGroups" : {
+      "get" : {
+        "description" : "Get list of web permission groups",
+        "operationId" : "resolve_30",
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GroupList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/groupPermissions" : {
+      "get" : {
+        "description" : "Get list of web permissions that have been granted to specific group",
+        "operationId" : "resolve_31",
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebPermissionList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/saveGroupPermissions" : {
+      "post" : {
+        "description" : "Update list of permissions for a group",
+        "operationId" : "resolve_32",
+        "requestBody" : {
+          "content" : {
+            "*/*" : {
+              "example" : [ "page" ]
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GroupList"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/permissions" : {
+      "get" : {
+        "description" : "Get list of web permissions that can be granted",
+        "operationId" : "resolve_33",
+        "requestBody" : {
+          "content" : {
+            "*/*" : { }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/WebPermissionList"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "Response" : {
+        "type" : "object",
+        "properties" : {
+          "headers" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "bytes" : {
+            "type" : "string",
+            "format" : "byte"
+          },
+          "charset" : {
+            "type" : "object",
+            "properties" : {
+              "registered" : {
+                "type" : "boolean"
+              }
+            }
+          },
+          "asString" : {
+            "type" : "string"
+          },
+          "errorResponse" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "Request" : {
+        "type" : "object",
+        "properties" : {
+          "method" : {
+            "type" : "string"
+          },
+          "path" : {
+            "$ref" : "#/components/schemas/URIPath"
+          },
+          "query" : {
+            "$ref" : "#/components/schemas/URIQuery"
+          },
+          "user" : {
+            "$ref" : "#/components/schemas/WebUser"
+          },
+          "requestBody" : {
+            "type" : "string",
+            "format" : "byte"
+          },
+          "accessIpAddress" : {
+            "type" : "string"
+          }
+        }
+      },
+      "URIPath" : {
+        "type" : "object"
+      },
+      "URIQuery" : {
+        "type" : "object"
+      },
+      "WebUser" : {
+        "type" : "object",
+        "properties" : {
+          "username" : {
+            "type" : "string"
+          },
+          "permissions" : {
+            "uniqueItems" : true,
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "uuid" : {
+            "type" : "string",
+            "format" : "uuid"
+          }
+        }
+      },
+      "ErrorFile" : {
+        "type" : "object",
+        "properties" : {
+          "fileName" : {
+            "type" : "string"
+          },
+          "contents" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "PlayerJoinAddresses" : {
+        "type" : "object",
+        "properties" : {
+          "joinAddresses" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "joinAddressByPlayer" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "ThemeDto" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "colors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "nightColors" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "useCases" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          },
+          "nightModeUseCases" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "object"
+            }
+          }
+        }
+      },
+      "ExtensionDescriptionDto" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "text" : {
+            "type" : "string"
+          },
+          "description" : {
+            "type" : "string"
+          },
+          "icon" : {
+            "$ref" : "#/components/schemas/IconDto"
+          },
+          "priority" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "ExtensionValueDataDto" : {
+        "type" : "object",
+        "properties" : {
+          "description" : {
+            "$ref" : "#/components/schemas/ExtensionDescriptionDto"
+          },
+          "type" : {
+            "type" : "string"
+          },
+          "value" : {
+            "type" : "object"
+          }
+        }
+      },
+      "IconDto" : {
+        "type" : "object",
+        "properties" : {
+          "family" : {
+            "type" : "string"
+          },
+          "familyClass" : {
+            "type" : "string"
+          },
+          "color" : {
+            "type" : "string"
+          },
+          "colorClass" : {
+            "type" : "string"
+          },
+          "iconName" : {
+            "type" : "string"
+          }
+        }
+      },
+      "PlayerListDto" : {
+        "type" : "object",
+        "properties" : {
+          "players" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TablePlayerDto"
+            }
+          },
+          "extensionDescriptors" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ExtensionDescriptionDto"
+            }
+          }
+        }
+      },
+      "TablePlayerDto" : {
+        "type" : "object",
+        "properties" : {
+          "playerUUID" : {
+            "type" : "string",
+            "format" : "uuid"
+          },
+          "playerName" : {
+            "type" : "string"
+          },
+          "activityIndex" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "playtimeActive" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "sessionCount" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "lastSeen" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "registered" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "country" : {
+            "type" : "string"
+          },
+          "pingAverage" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "pingMax" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pingMin" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "nicknames" : {
+            "type" : "string"
+          },
+          "extensionValues" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "$ref" : "#/components/schemas/ExtensionValueDataDto"
+            }
+          }
+        }
+      },
+      "GraphThresholds" : {
+        "type" : "object",
+        "properties" : {
+          "highThreshold" : {
+            "type" : "number",
+            "format" : "double"
+          },
+          "mediumThreshold" : {
+            "type" : "number",
+            "format" : "double"
+          }
+        }
+      },
+      "Preferences" : {
+        "type" : "object",
+        "properties" : {
+          "recentDaysInDateFormat" : {
+            "type" : "boolean"
+          },
+          "dateFormatFull" : {
+            "type" : "string"
+          },
+          "dateFormatNoSeconds" : {
+            "type" : "string"
+          },
+          "dateFormatClock" : {
+            "type" : "string"
+          },
+          "timeFormat" : {
+            "$ref" : "#/components/schemas/TimeFormat"
+          },
+          "decimalFormat" : {
+            "type" : "string"
+          },
+          "firstDay" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "playerHeadImageUrl" : {
+            "type" : "string"
+          },
+          "tpsThresholds" : {
+            "$ref" : "#/components/schemas/GraphThresholds"
+          },
+          "diskThresholds" : {
+            "$ref" : "#/components/schemas/GraphThresholds"
+          }
+        }
+      },
+      "TimeFormat" : {
+        "type" : "object",
+        "properties" : {
+          "year" : {
+            "type" : "string"
+          },
+          "years" : {
+            "type" : "string"
+          },
+          "month" : {
+            "type" : "string"
+          },
+          "months" : {
+            "type" : "string"
+          },
+          "day" : {
+            "type" : "string"
+          },
+          "days" : {
+            "type" : "string"
+          },
+          "hours" : {
+            "type" : "string"
+          },
+          "minutes" : {
+            "type" : "string"
+          },
+          "seconds" : {
+            "type" : "string"
+          },
+          "zero" : {
+            "type" : "string"
+          }
+        }
+      },
+      "PluginHistoryDto" : {
+        "type" : "object",
+        "properties" : {
+          "history" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/PluginHistoryMetadata"
+            }
+          }
+        }
+      },
+      "PluginHistoryMetadata" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          },
+          "modified" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "FilterResponseDto" : {
+        "type" : "object"
+      },
+      "InputFilterDto" : {
+        "type" : "object",
+        "properties" : {
+          "kind" : {
+            "type" : "string"
+          },
+          "setParameters" : {
+            "uniqueItems" : true,
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      },
+      "InputQueryDto" : {
+        "type" : "object",
+        "properties" : {
+          "filters" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/InputFilterDto"
+            }
+          },
+          "view" : {
+            "$ref" : "#/components/schemas/ViewDto"
+          }
+        }
+      },
+      "ServerUUID" : {
+        "type" : "object"
+      },
+      "ViewDto" : {
+        "type" : "object",
+        "properties" : {
+          "serverUUIDs" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ServerUUID"
+            }
+          },
+          "afterEpochMs" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "beforeEpochMs" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "Group" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          }
+        }
+      },
+      "GroupList" : {
+        "type" : "object",
+        "properties" : {
+          "groups" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Group"
+            }
+          }
+        }
+      },
+      "WebPermissionList" : {
+        "type" : "object",
+        "properties" : {
+          "permissions" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

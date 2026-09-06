@@ -1,0 +1,47 @@
+{
+  "name": "punishments.mute.page1",
+  "url": "https://punishments.democracycraft.net/punishments/mute/1",
+  "status": 200,
+  "ok": true,
+  "body": {
+    "morePages": true,
+    "punishments": {
+      "__arrayLength": 6,
+      "__sample": [
+        {
+          "victimUuid": "f3e44db6-32da-4cf5-9f8a-5eeaba6fc15d",
+          "victimUsername": "wasupp48",
+          "operatorUuid": "00000000-0000-0000-0000-000000000000",
+          "operatorUsername": "Console",
+          "reason": "Deportation: Respect - Low Effort Troll (Expiry: None)",
+          "active": false,
+          "start": 1788474905,
+          "end": 0,
+          "label": "Permanent"
+        },
+        {
+          "victimUuid": "b18beb46-0700-440c-9c71-6730ed045623",
+          "victimUsername": "Dorian0k",
+          "operatorUuid": "00000000-0000-0000-0000-000000000000",
+          "operatorUsername": "Console",
+          "reason": "2. Chat - Slurred Speech in Public Channels",
+          "active": false,
+          "start": 1788468061,
+          "end": 1788511261,
+          "label": "Active"
+        },
+        {
+          "victimUuid": "2553de9b-434b-4e5c-82a7-274d74478579",
+          "victimUsername": "DustEBottoms_",
+          "operatorUuid": "00000000-0000-0000-0000-000000000000",
+          "operatorUsername": "Console",
+          "reason": "2. Chat - Slurred Speech in Public Channels",
+          "active": false,
+          "start": 1788468029,
+          "end": 1788511229,
+          "label": "Active"
+        }
+      ]
+    }
+  }
+}

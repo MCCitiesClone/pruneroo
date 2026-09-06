@@ -1,0 +1,178 @@
+openapi: 3.0.3
+info:
+  title: LibertyBans Punishments API
+  description: >
+    API for retrieving ban and mute punishment data from the LibertyBans
+    plugin, as exposed by the DemocracyCraft punishments service.
+  version: 1.0.0
+servers:
+  - url: https://punishments.democracycraft.net
+    description: Production server
+
+paths:
+  /punishments/ban/{page}:
+    get:
+      summary: Ban List
+      description: Retrieves a paginated list of active/past ban punishments.
+      operationId: getBanList
+      tags:
+        - Bans
+      parameters:
+        - name: page
+          in: path
+          required: true
+          description: Page number of results to retrieve.
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+      responses:
+        "200":
+          description: A list of ban punishments.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PunishmentListResponse"
+        "404":
+          description: Page not found.
+        "500":
+          description: Internal server error.
+
+  /stats/ban:
+    get:
+      summary: Ban Count
+      description: Retrieves the total count of ban punishments.
+      operationId: getBanCount
+      tags:
+        - Bans
+      responses:
+        "200":
+          description: The total number of bans.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CountResponse"
+        "500":
+          description: Internal server error.
+
+  /punishments/mute/{page}:
+    get:
+      summary: Mute List
+      description: Retrieves a paginated list of active/past mute punishments.
+      operationId: getMuteList
+      tags:
+        - Mutes
+      parameters:
+        - name: page
+          in: path
+          required: true
+          description: Page number of results to retrieve.
+          schema:
+            type: integer
+            minimum: 1
+            example: 1
+      responses:
+        "200":
+          description: A list of mute punishments.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PunishmentListResponse"
+        "404":
+          description: Page not found.
+        "500":
+          description: Internal server error.
+
+  /stats/mute:
+    get:
+      summary: Mute Count
+      description: Retrieves the total count of mute punishments.
+      operationId: getMuteCount
+      tags:
+        - Mutes
+      responses:
+        "200":
+          description: The total number of mutes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CountResponse"
+        "500":
+          description: Internal server error.
+
+components:
+  schemas:
+    Punishment:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 123
+        type:
+          type: string
+          enum: [BAN, MUTE]
+          example: BAN
+        victim:
+          type: string
+          description: UUID or IP address of the punished player.
+          example: "069a79f4-44e9-4726-a5be-fca90e38aaf5"
+        victimName:
+          type: string
+          nullable: true
+          example: "Notch"
+        operator:
+          type: string
+          description: UUID of the staff member who issued the punishment.
+          example: "00000000-0000-0000-0000-000000000000"
+        operatorName:
+          type: string
+          nullable: true
+          example: "Console"
+        reason:
+          type: string
+          example: "Cheating"
+        scope:
+          type: string
+          example: "global"
+        startTime:
+          type: integer
+          format: int64
+          description: Epoch timestamp (ms) when the punishment started.
+        endTime:
+          type: integer
+          format: int64
+          description: Epoch timestamp (ms) when the punishment ends, or -1 for permanent.
+      required:
+        - id
+        - type
+        - victim
+        - reason
+        - startTime
+        - endTime
+
+    PunishmentListResponse:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        totalPages:
+          type: integer
+          example: 10
+        punishments:
+          type: array
+          items:
+            $ref: "#/components/schemas/Punishment"
+
+    CountResponse:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 4821
+
+tags:
+  - name: Bans
+    description: Endpoints related to ban punishments.
+  - name: Mutes
+    description: Endpoints related to mute punishments.

@@ -1,0 +1,9 @@
+{
+  "name": "punishments.stats.ban",
+  "url": "https://punishments.democracycraft.net/stats/ban",
+  "status": 200,
+  "ok": true,
+  "body": {
+    "stats": 3755
+  }
+}

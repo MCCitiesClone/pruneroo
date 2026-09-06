@@ -1,0 +1,31 @@
+# Caddy in front of the Pelican allocation, on the Wings host.
+#
+# Allocate the Pruneroo server on 127.0.0.1 in the panel (Admin -> Node ->
+# Allocations). Wings then publishes the container port on loopback only, so the
+# dashboard is reachable through Caddy and not directly — it has no auth of its
+# own, and it lists player balances and ban history.
+#
+# Set the panel's APP_BASE_URL variable to https://pruneroo.example.com so
+# Discord alerts link back here.
+
+pruneroo.example.com {
+	encode zstd gzip
+
+	# 127.0.0.1:<allocation port> — the port shown on the server's console page.
+	reverse_proxy 127.0.0.1:3000 {
+		# CSV exports from /api/at-risk/export can run long on a cold cache.
+		transport http {
+			read_timeout 300s
+		}
+	}
+
+	# Optional: the dashboard is unauthenticated. Either keep it behind a VPN,
+	# or uncomment and generate a hash with `caddy hash-password`.
+	# basic_auth {
+	# 	staff $2a$14$...
+	# }
+
+	log {
+		output file /var/log/caddy/pruneroo.log
+	}
+}

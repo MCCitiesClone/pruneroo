@@ -1,0 +1,9 @@
+{
+  "name": "punishments.stats.mute",
+  "url": "https://punishments.democracycraft.net/stats/mute",
+  "status": 200,
+  "ok": true,
+  "body": {
+    "stats": 2543
+  }
+}

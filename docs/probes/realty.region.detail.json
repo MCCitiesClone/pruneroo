@@ -1,0 +1,61 @@
+{
+  "name": "realty.region.detail",
+  "url": "https://realty.democracycraft.net/v1/region?world=b04fccfd-b696-4c85-8497-aecbb0277883&region=1",
+  "status": 200,
+  "ok": true,
+  "body": {
+    "worldGuardRegionId": "1",
+    "world": {
+      "id": "b04fccfd-b696-4c85-8497-aecbb0277883",
+      "name": "Reveille"
+    },
+    "state": "LEASED",
+    "freehold": null,
+    "leasehold": {
+      "landlord": {
+        "id": "9573b7e5-8220-4863-a4e9-d6a9d36ff773",
+        "name": "ameslap"
+      },
+      "tenant": {
+        "id": "96ae8ef4-2a57-471d-8cdb-e1d79ce9d9d0",
+        "name": "SimplyPiano"
+      },
+      "price": 69,
+      "durationSeconds": 2592000,
+      "startDate": "2026-09-02T20:42:40Z",
+      "endDate": "2027-03-01T20:42:40Z",
+      "extensionsUsed": null,
+      "maxExtensions": null,
+      "terminationEffectiveDate": null,
+      "terminatedByRole": null,
+      "acceptingTenants": true
+    },
+    "auction": null,
+    "dimensions": {
+      "shape": "POLYGONAL",
+      "minY": 71,
+      "maxY": 76,
+      "points": {
+        "__arrayLength": 4,
+        "__sample": [
+          {
+            "x": 3290,
+            "z": 3382
+          },
+          {
+            "x": 3290,
+            "z": 3371
+          },
+          {
+            "x": 3271,
+            "z": 3371
+          }
+        ]
+      }
+    },
+    "tags": {
+      "__arrayLength": 0,
+      "__sample": []
+    }
+  }
+}

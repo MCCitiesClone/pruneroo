@@ -1,0 +1,7 @@
+{
+  "name": "analytics.playersTable",
+  "url": "https://analytics.democracycraft.net/v1/playersTable",
+  "status": 200,
+  "ok": true,
+  "body": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"utf-8\">\n    <meta content=\"width=device-width, initial-scale=1, maximum-scale=1\" name=\"viewport\">\n    <meta content=\"Player Analytics\" name=\"description\">\n    <meta content=\"AuroraLS3\" name=\"author\">\n    <meta content=\"noindex, nofollow\" name=\"robots\">\n\n    <!--\n      manifest.json provides metadata used when your web app is installed on a\n      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-m"
+}

@@ -1,0 +1,22 @@
+{
+  "name": "realty.stats",
+  "url": "https://realty.democracycraft.net/v1/stats",
+  "status": 200,
+  "ok": true,
+  "body": {
+    "regions": 7837,
+    "freehold": {
+      "contracts": 1654,
+      "occupied": 1537,
+      "averagePrice": 2.777777777777778e+58
+    },
+    "leasehold": {
+      "contracts": 7962,
+      "occupied": 2505,
+      "averagePrice": 1.2559658377292138e+59,
+      "averageDurationSeconds": 73314750
+    },
+    "activeOffers": 181,
+    "activeAuctions": 0
+  }
+}
