@@ -111,12 +111,19 @@ const schema = z.object({
    */
   /**
    * Where this app is reachable, used to link Discord alerts back to the page
-   * that explains them. Unset simply means the alerts carry no links.
+   * that explains them. Unset means the alerts carry no links.
+   *
+   * Validated as a URL rather than as a plain string. This value is not only
+   * displayed: it becomes the `url` on every Discord embed, and a scheme-less
+   * value like `pruneroo.example.com` is rejected by Discord with
+   * `400 {"embeds": ["0"]}`, which names neither the field nor the variable
+   * that caused it. Every notifier fails at once and the message points at
+   * nothing. Failing at boot, naming APP_BASE_URL, is the cheaper failure.
    */
-  APP_BASE_URL: z
-    .string()
-    .optional()
-    .transform((v) => v?.trim().replace(/\/+$/, "") || undefined),
+  APP_BASE_URL: z.preprocess(
+    (value) => (typeof value === "string" ? value.trim() || undefined : value),
+    baseUrl.optional(),
+  ),
 
   DISCORD_WEBHOOK_PUNISHMENTS: optionalSecret,
   DISCORD_WEBHOOK_PRUNE: optionalSecret,

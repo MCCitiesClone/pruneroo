@@ -15,11 +15,6 @@ set -euo pipefail
 
 cd /home/container
 
-# Wings sets this from the server allocation; a clear message beats the bare
-# "unbound variable" from set -u. (No apostrophes in the message: a quote inside
-# ${...:?} starts a new quoting context even within double quotes.)
-: "${SERVER_PORT:?set by Wings from the server allocation}"
-
 AUTO_UPDATE="${AUTO_UPDATE:-1}"
 RUN_MIGRATIONS="${RUN_MIGRATIONS:-1}"
 GIT_BRANCH="${GIT_BRANCH:-main}"
@@ -28,6 +23,23 @@ STATE_DIR=".deploy-state"
 mkdir -p "$STATE_DIR"
 
 log() { printf '\033[36m[deploy]\033[0m %s\n' "$*"; }
+
+# Wings sets SERVER_PORT from the server's default allocation, and passes 0 when
+# the server has no primary allocation. Checking only that it is set is not
+# enough: `next start --port 0` binds a random ephemeral port, so the container
+# prints "Ready in" and looks healthy while the published mapping points at a
+# port nothing is listening on. Refuse to start instead.
+case "${SERVER_PORT:-}" in
+  "" | *[!0-9]*)
+    log "SERVER_PORT is ${SERVER_PORT:-unset}; Wings sets it from the allocation"
+    exit 1
+    ;;
+esac
+if [ "$SERVER_PORT" -lt 1024 ] || [ "$SERVER_PORT" -gt 65535 ]; then
+  log "SERVER_PORT is ${SERVER_PORT}, which is not an allocation port."
+  log "Assign this server a primary allocation in the panel, then restart."
+  exit 1
+fi
 
 if [ "$AUTO_UPDATE" = "1" ] && [ -d .git ]; then
   log "fetching origin/${GIT_BRANCH}"
