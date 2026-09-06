@@ -1,31 +1,62 @@
 # Caddy in front of the Pelican allocation, on the Wings host.
 #
-# Allocate the Pruneroo server on 127.0.0.1 in the panel (Admin -> Node ->
-# Allocations). Wings then publishes the container port on loopback only, so the
-# dashboard is reachable through Caddy and not directly — it has no auth of its
-# own, and it lists player balances and ban history.
+# Give the Pruneroo server an allocation on 172.18.0.1, the pelican_nw bridge
+# gateway, and point the proxy at it. The panel's allocation dropdown lists only
+# the addresses Wings detected on the node, so 127.0.0.1 is usually not offered.
+# The bridge gateway is a host interface, so Caddy reaches it, and it is not
+# routable from outside the machine. The one difference from loopback is that
+# other containers on pelican_nw can reach it too, which matters only if the
+# node runs servers you do not control.
 #
 # Set the panel's APP_BASE_URL variable to https://pruneroo.example.com so
-# Discord alerts link back here.
+# Discord alerts link back here. It must include the scheme: a bare hostname is
+# rejected at boot, because it would reach Discord as an invalid embed URL.
 
 pruneroo.example.com {
 	encode zstd gzip
 
-	# 127.0.0.1:<allocation port> — the port shown on the server's console page.
-	reverse_proxy 127.0.0.1:3000 {
+	# 172.18.0.1:<allocation port>, the port shown on the server's console page.
+	reverse_proxy 172.18.0.1:3000 {
 		# CSV exports from /api/at-risk/export can run long on a cold cache.
 		transport http {
 			read_timeout 300s
 		}
 	}
 
-	# Optional: the dashboard is unauthenticated. Either keep it behind a VPN,
-	# or uncomment and generate a hash with `caddy hash-password`.
+	# Access log to journald, readable with `journalctl -u caddy`. To write a
+	# file instead, create the directory first or the config is rejected:
+	#   sudo mkdir -p /var/log/caddy && sudo chown caddy:caddy /var/log/caddy
+	#   log { output file /var/log/caddy/pruneroo.log }
+	log
+
+	# Optional: the dashboard is unauthenticated. Either keep it on a private
+	# network, or uncomment and generate a hash with `caddy hash-password`.
 	# basic_auth {
 	# 	staff $2a$14$...
 	# }
-
-	log {
-		output file /var/log/caddy/pruneroo.log
-	}
 }
+
+# A host that is not reachable from the internet cannot answer the HTTP-01 or
+# TLS-ALPN challenge, so it needs DNS-01. For Cloudflare, add the module to the
+# binary and give Caddy a scoped API token (Zone:Read + DNS:Edit):
+#
+#   sudo caddy add-package github.com/caddy-dns/cloudflare
+#   sudo apt-mark hold caddy          # apt upgrades replace the built binary
+#   sudo systemctl restart caddy
+#
+# Then add this inside the site block. `resolvers` matters on a LAN, where a
+# split-horizon resolver may not see the challenge record Cloudflare published.
+#
+# 	tls {
+# 		dns cloudflare {env.CF_API_TOKEN}
+# 		resolvers 1.1.1.1 1.0.0.1
+# 	}
+#
+# Pass the token through systemd, not the Caddyfile:
+#   printf 'CF_API_TOKEN=%s\n' '<token>' | sudo tee /etc/caddy/cloudflare.env
+#   sudo chmod 600 /etc/caddy/cloudflare.env
+#   sudo systemctl edit caddy         # [Service] EnvironmentFile=/etc/caddy/cloudflare.env
+#
+# Check `systemctl cat caddy | grep ExecStart` while you are there. The upstream
+# unit runs `caddy run --environ`, which prints every environment variable to
+# the journal, token included. Override ExecStart without it.

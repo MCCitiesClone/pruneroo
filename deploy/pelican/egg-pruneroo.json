@@ -221,7 +221,7 @@
         },
         {
             "name": "App base URL",
-            "description": "Public URL of this dashboard, used to link Discord alerts back to the page that explains them.",
+            "description": "Public URL of this dashboard, used to link Discord alerts back to the page that explains them. Include the scheme (https://pruneroo.example.com): it becomes the url on every Discord embed, and a bare hostname is rejected at boot. Blank disables the links.",
             "env_variable": "APP_BASE_URL",
             "default_value": "",
             "user_viewable": true,

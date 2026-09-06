@@ -127,9 +127,20 @@ an archive from a newer server.
      137.
    - **Disk**: 5120MB or more. `node_modules` is ~700MB, `.next` is ~1GB, plus
      the git checkout.
-   - **Allocation**: on `127.0.0.1`, so Wings publishes the port on loopback and
-     the dashboard is reachable only through Caddy. It has no authentication of
-     its own and it lists player balances and ban history.
+   - **Allocation**: on `172.18.0.1`, the `pelican_nw` bridge gateway, and mark
+     it **primary**. Wings then publishes the port on a host interface that
+     Caddy can reach and nothing off the machine can route to. The dashboard has
+     no authentication of its own and it lists player balances and ban history,
+     so it should not be on a public address. The panel's dropdown offers only
+     the addresses Wings detected, so `127.0.0.1` is usually not among them;
+     the difference that matters is that other containers on `pelican_nw` can
+     reach the bridge gateway, which counts only if the node runs servers you do
+     not control. If you need loopback, the application API accepts it:
+     `POST /api/application/nodes/<id>/allocations` with `allocation_ip` and
+     `allocation_ports`.
+
+     A server with no primary allocation gets `SERVER_PORT=0` from Wings, which
+     `start.sh` refuses rather than binding a random port.
    - **CPU**: leave unlimited if you can, since the build is parallel.
 3. **Fill in the variables**, covered in §4. `GIT_ADDRESS` already points at the
    public repository, so what needs filling is `DATABASE_URL`, `TREASURY_TOKEN`,
@@ -160,6 +171,10 @@ to leave blank, are `TREASURY_TOKEN`, `ANALYTICS_USERNAME`,
 `ANALYTICS_PASSWORD`, `FORUM_COOKIE`, `APP_BASE_URL` and the three
 `DISCORD_WEBHOOK_*`.
 
+`APP_BASE_URL` needs the scheme when it is set. It becomes the `url` on every
+Discord embed, so `pruneroo.example.com` without `https://` is rejected by
+Discord rather than by us. The app validates it at boot for that reason.
+
 `DEFAULT_WORLD_UUID` and `DEFAULT_AUTHORITY` are deliberately **not** in the
 egg. Their defaults live in `env.ts`, and an absent variable gets that default,
 whereas one present-but-blank would override it with `""` and empty the at-risk
@@ -180,16 +195,81 @@ subuser list to people who are allowed to hold those.
 
 ## 5. Reverse proxy and TLS
 
-`deploy/caddy/Caddyfile.example` proxies a hostname to the loopback allocation.
-Copy it into `/etc/caddy/Caddyfile`, or a `sites-enabled` include, set the
-hostname and the allocation port, then `systemctl reload caddy`.
+Caddy goes on the Wings host, because that is where the allocation is published.
+Install it from the official apt repository:
 
-Then set **`APP_BASE_URL`** to the same public URL. It is what Discord alerts
-link back to, and unset they carry no links.
+```sh
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https curl
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update && sudo apt install caddy
+```
 
-The dashboard has no login. Either keep it on a VPN or private network, or
-uncomment the `basic_auth` block in the example and generate a hash with
+That installs a `caddy` systemd service running as the `caddy` user, reading
+`/etc/caddy/Caddyfile`, keeping certificates in `/var/lib/caddy`. Copy
+`deploy/caddy/Caddyfile.example` into place, set the hostname and the allocation
+port, then `sudo systemctl reload caddy`. Reload rather than restart: a reload
+is atomic, so a bad config is rejected and the previous one keeps serving.
+
+Then set **`APP_BASE_URL`** to the same public URL, with the scheme. It is what
+Discord alerts link back to, and unset they carry no links.
+
+The dashboard has no login. Either keep it on a private network, or uncomment
+the `basic_auth` block in the example and generate a hash with
 `caddy hash-password`.
+
+### A host the internet cannot reach
+
+The HTTP-01 and TLS-ALPN challenges both require Let's Encrypt to connect to the
+box, so a LAN-only install needs DNS-01. The stock apt binary has no DNS
+provider modules, so add one and stop apt from replacing the binary:
+
+```sh
+sudo caddy add-package github.com/caddy-dns/cloudflare
+sudo apt-mark hold caddy          # `sudo caddy upgrade` from here on
+sudo systemctl restart caddy      # add-package only swaps the binary on disk
+caddy list-modules | grep cloudflare
+```
+
+Create a Cloudflare API token with **Zone:Zone:Read** and **Zone:DNS:Edit**,
+scoped to the zone. The module dropped support for the global API key, so a
+scoped token is the only option. Pass it through systemd rather than the
+Caddyfile:
+
+```sh
+printf 'CF_API_TOKEN=%s\n' '<token>' | sudo tee /etc/caddy/cloudflare.env >/dev/null
+sudo chmod 600 /etc/caddy/cloudflare.env
+sudo systemctl edit caddy         # [Service] EnvironmentFile=/etc/caddy/cloudflare.env
+```
+
+While editing that override, check `systemctl cat caddy | grep ExecStart`. The
+upstream unit runs `caddy run --environ`, and `--environ` prints every
+environment variable at startup, so the token lands in the journal in clear
+text. Clear it in the override:
+
+```ini
+[Service]
+ExecStart=
+ExecStart=/usr/bin/caddy run --config /etc/caddy/Caddyfile
+```
+
+Then the site block takes a `tls` directive:
+
+```caddyfile
+	tls {
+		dns cloudflare {env.CF_API_TOKEN}
+		resolvers 1.1.1.1 1.0.0.1
+	}
+```
+
+`resolvers` matters on a LAN. Caddy polls DNS to confirm the challenge record
+propagated, and a split-horizon or caching resolver can fail to see a record
+Cloudflare has already published.
+
+Issuance needs only the TXT record Caddy creates and removes. The A record is
+for your own clients: either point one at the private address as DNS-only, or
+publish nothing and resolve the name on your own DNS. With DNS-01, ports 80 and
+443 need no inbound access from the internet at all.
 
 ## 6. Start, stop, deploy
 
@@ -255,4 +335,8 @@ Restore with the same `restore-prod-db.sh` used for the initial import.
 | `another process holds the worker lock` | A previous process is still alive, or a CLI worker is running. Expected on a second instance. |
 | Server stuck in *Starting* | Either the build is still running, which the console shows, or nothing printed `Ready in`. |
 | Install fails cloning | A branch name that does not exist, or a missing `GIT_TOKEN` if you pointed `GIT_ADDRESS` at a private fork. |
+| Console says `starting Next on 0.0.0.0:0`, or Caddy returns 502 | The server has no primary allocation, so Wings passes `SERVER_PORT=0`. Mark an allocation primary in the panel and restart. `start.sh` refuses to start on it rather than binding a random port. |
+| All three notifiers fail with `Discord webhook returned HTTP 400: {"embeds": ["0"]}` | Discord rejected the embed. Usually `APP_BASE_URL` without a scheme, which becomes an invalid embed `url`. **Send test** on `/sync` uses the same field, so a failing test confirms it. |
+| Caddy reload fails with `open /var/log/caddy/...: permission denied` | The log directory does not exist or is not writable by the `caddy` user: `sudo mkdir -p /var/log/caddy && sudo chown caddy:caddy /var/log/caddy`. The previous config keeps serving until the reload succeeds. |
+| Certificates stop renewing after an apt upgrade | `apt` replaced the binary built by `caddy add-package`, dropping the DNS module. `apt-mark hold caddy` and upgrade with `sudo caddy upgrade`. |
 | Restore refuses with "a sync worker still holds the advisory lock" | Stop the Pelican server first. |
