@@ -34,15 +34,10 @@ Everything referenced below lives in `deploy/`.
 
 ## 0. Before you start
 
-- **The repository needs a remote.** The egg deploys by cloning; there is no
-  remote configured in this checkout yet.
-
-  ```sh
-  git remote add origin git@github.com:you/pruneroo.git
-  git push -u origin main
-  ```
-
-  A private repository is fine — the egg takes a `GIT_TOKEN`.
+- **The branch you want to deploy is pushed.** The egg deploys by cloning
+  `GIT_ADDRESS`, which defaults to the public repository
+  (`https://github.com/MCCitiesClone/pruneroo.git`) and needs no credentials.
+  `GIT_USERNAME`/`GIT_TOKEN` exist only for deploying from a private fork.
 - Root/SSH on the Wings node, with Docker.
 - A DNS A record pointing at the node.
 - Credentials to hand: Treasury JWT, Analytics login, forum `xf_user` cookie,
@@ -141,8 +136,9 @@ an archive from a newer server.
      the dashboard is reachable only through Caddy. It has no authentication of
      its own and it lists player balances and ban history.
    - **CPU**: leave unlimited if you can; the build is parallel.
-3. **Fill in the variables** (§4). At minimum `GIT_ADDRESS`, `DATABASE_URL`,
-   `TREASURY_TOKEN`, the Analytics login and `FORUM_COOKIE`.
+3. **Fill in the variables** (§4). `GIT_ADDRESS` already points at the public
+   repository; what actually needs filling is `DATABASE_URL`, `TREASURY_TOKEN`,
+   the Analytics login and `FORUM_COOKIE`.
 
 Installation clones the repo and runs `deploy/pelican/install.sh` — `npm ci`
 then `next build` — in a `node:24-trixie-slim` container. Watch it in the
@@ -178,7 +174,7 @@ Deployment-only variables, which have no `.env` equivalent:
 | Variable | Meaning |
 |---|---|
 | `GIT_ADDRESS` / `GIT_BRANCH` | What to deploy. |
-| `GIT_USERNAME` / `GIT_TOKEN` | Private-repo credentials. Baked into the remote URL in `.git/config` so the startup `git fetch` keeps working. |
+| `GIT_USERNAME` / `GIT_TOKEN` | Blank for the public repository. Only for a private fork, where they are baked into the remote URL in `.git/config` so the startup `git fetch` keeps working. |
 | `AUTO_UPDATE` | `1` = fetch and `reset --hard` to the branch on every start. |
 | `RUN_MIGRATIONS` | `1` = apply migrations and re-apply `views.sql` before starting. Leave on; both are idempotent. |
 
@@ -261,5 +257,5 @@ Restore with the same `restore-prod-db.sh` used for the initial import.
 | `Invalid environment configuration` on boot | A required variable was cleared to blank in the panel. See §4. |
 | `another process holds the worker lock` | A previous process is still alive, or a CLI worker is running. Expected on a second instance. |
 | Server stuck in *Starting* | Either the build is still running (check the console) or nothing printed `Ready in`. |
-| Install fails cloning | Private repo without `GIT_TOKEN`, or a branch name that does not exist. |
+| Install fails cloning | A branch name that does not exist — or, if you pointed `GIT_ADDRESS` at a private fork, a missing `GIT_TOKEN`. |
 | Restore refuses with "a sync worker still holds the advisory lock" | Stop the Pelican server first. |

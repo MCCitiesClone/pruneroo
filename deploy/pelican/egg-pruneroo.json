@@ -31,9 +31,9 @@
     "variables": [
         {
             "name": "Git repository",
-            "description": "HTTPS URL of the Pruneroo repository to deploy, e.g. https://github.com/you/pruneroo",
+            "description": "HTTPS URL of the Pruneroo repository to deploy. The upstream repository is public, so it clones anonymously.",
             "env_variable": "GIT_ADDRESS",
-            "default_value": "https://github.com/CHANGE-ME/pruneroo.git",
+            "default_value": "https://github.com/MCCitiesClone/pruneroo.git",
             "user_viewable": true,
             "user_editable": true,
             "rules": "required|string",
@@ -51,7 +51,7 @@
         },
         {
             "name": "Git username",
-            "description": "Only for a private repository. Leave blank for a public one.",
+            "description": "Leave blank. Only needed if you deploy from a private fork.",
             "env_variable": "GIT_USERNAME",
             "default_value": "",
             "user_viewable": true,
@@ -61,7 +61,7 @@
         },
         {
             "name": "Git token",
-            "description": "Personal access / deploy token for a private repository. Stored in the remote URL inside .git/config on the server.",
+            "description": "Leave blank. Only needed if you deploy from a private fork: a read-only deploy token, stored in the remote URL in .git/config so the startup git fetch keeps working.",
             "env_variable": "GIT_TOKEN",
             "default_value": "",
             "user_viewable": true,
