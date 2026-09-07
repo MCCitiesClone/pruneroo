@@ -223,13 +223,33 @@ export type Env = z.infer<typeof schema>;
 
 let cached: Env | undefined;
 
+/** Never echoed back in an error, however they failed. */
+const SECRET = /TOKEN|PASSWORD|COOKIE|WEBHOOK|SECRET|DATABASE_URL/;
+
+/**
+ * The offending value, quoted, so the error shows what the schema actually saw.
+ *
+ * "Invalid URL" on a value that looks correct in the panel is a dead end. The
+ * usual cause is characters that a `.env` file would have eaten and a control
+ * panel passes through verbatim: quotes around the value, or trailing
+ * whitespace. `JSON.stringify` makes both visible.
+ */
+function received(key: string): string {
+  const raw = process.env[key];
+  if (raw === undefined || SECRET.test(key)) return "";
+  return ` (received ${JSON.stringify(raw)})`;
+}
+
 export function getEnv(): Env {
   if (cached) return cached;
 
   const parsed = schema.safeParse(process.env);
   if (!parsed.success) {
     const issues = parsed.error.issues
-      .map((issue) => `  ${issue.path.join(".") || "(root)"}: ${issue.message}`)
+      .map((issue) => {
+        const key = issue.path.join(".") || "(root)";
+        return `  ${key}: ${issue.message}${received(key)}`;
+      })
       .join("\n");
     throw new Error(
       `Invalid environment configuration:\n${issues}\n\n` +

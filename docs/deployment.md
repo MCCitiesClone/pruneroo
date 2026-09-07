@@ -171,6 +171,12 @@ to leave blank, are `TREASURY_TOKEN`, `ANALYTICS_USERNAME`,
 `ANALYTICS_PASSWORD`, `FORUM_COOKIE`, `APP_BASE_URL` and the three
 `DISCORD_WEBHOOK_*`.
 
+**Do not wrap a value in quotes.** In a `.env` file `FOO="bar"` and `FOO=bar`
+are the same thing, because dotenv strips the quotes. A panel field is the raw
+value, so the quotes become part of it and a URL stops being a URL. The boot
+error quotes the value it received back at you, which is what makes this
+visible: `APP_BASE_URL: Invalid URL (received "\"https://example.com\"")`.
+
 `APP_BASE_URL` needs the scheme when it is set. It becomes the `url` on every
 Discord embed, so `pruneroo.example.com` without `https://` is rejected by
 Discord rather than by us. The app validates it at boot for that reason.
@@ -331,7 +337,7 @@ Restore with the same `restore-prod-db.sh` used for the initial import.
 |---|---|
 | Install log ends at exit 137 | The build was OOM-killed. Raise the server's memory to 3072MB or more. |
 | Pages hang ~90s, console shows `connect ETIMEDOUT …:5432` | The container cannot reach Postgres. Check the gateway address in `DATABASE_URL` against `docker network inspect pelican_nw`, and that the compose `ports:` bind matches it. |
-| `Invalid environment configuration` on boot | A required variable was cleared to blank in the panel. See §4. |
+| `Invalid environment configuration` on boot or during the build | A variable was cleared to blank, or wrapped in quotes that a `.env` file would have stripped. The error quotes the value it received; check for `\"` around it or trailing whitespace. See §4. |
 | `another process holds the worker lock` | A previous process is still alive, or a CLI worker is running. Expected on a second instance. |
 | Server stuck in *Starting* | Either the build is still running, which the console shows, or nothing printed `Ready in`. |
 | Install fails cloning | A branch name that does not exist, or a missing `GIT_TOKEN` if you pointed `GIT_ADDRESS` at a private fork. |
